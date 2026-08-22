@@ -462,15 +462,133 @@ function buildBeep() {
     } catch(e) { return null; }
 }
 
-function beep(n) {
-    if (!T.snd || !BEEP) return;
-    n = n || 1;
-    for (var i=0; i<n; i++) {
+// Longer WAV for the time-up alarm: alternating 880/1100 Hz pulses, ~2.5s
+var ALARM = null;
+
+function buildAlarmWAV() {
+    try {
+        var sr = 8000, b = [], t, s, env, v, i, str;
+        var tones  = [880, 1100];
+        var onLen  = Math.floor(sr * 0.14);   // 0.14s on
+        var offLen = Math.floor(sr * 0.07);   // 0.07s off
+        var reps   = 9;                        // 9 pulses ≈ 2 s total
+
+        for (t = 0; t < reps; t++) {
+            var hz = tones[t % 2];
+            for (s = 0; s < onLen; s++) {
+                env = Math.min(s, onLen - s, 50) / 50;
+                v   = 128 + Math.round(115 * env * Math.sin(2 * Math.PI * hz * s / sr));
+                b.push(v & 0xFF);
+            }
+            for (s = 0; s < offLen; s++) b.push(128);
+        }
+
+        var ns = b.length, fz = 36 + ns, h = [];
+        h.push(82,73,70,70);
+        h.push(fz&255,(fz>>8)&255,(fz>>16)&255,(fz>>24)&255);
+        h.push(87,65,86,69, 102,109,116,32, 16,0,0,0, 1,0, 1,0);
+        h.push(sr&255,(sr>>8)&255,(sr>>16)&255,(sr>>24)&255);
+        h.push(sr&255,(sr>>8)&255,(sr>>16)&255,(sr>>24)&255);
+        h.push(1,0, 8,0, 100,97,116,97);
+        h.push(ns&255,(ns>>8)&255,(ns>>16)&255,(ns>>24)&255);
+        var all = h.concat(b);
+        str = "";
+        for (i = 0; i < all.length; i++) str += String.fromCharCode(all[i]);
+        return "data:audio/wav;base64," + btoa(str);
+    } catch(e) { return null; }
+}
+
+// Find a real .wav file on this Windows installation for reliable playback
+var WIN_WAV = null;
+function findWinWAV() {
+    var candidates = [
+        "C:\\Windows\\Media\\Alarm01.wav",
+        "C:\\Windows\\Media\\Alarm02.wav",
+        "C:\\Windows\\Media\\Windows Alarm.wav",
+        "C:\\Windows\\Media\\chimes.wav",
+        "C:\\Windows\\Media\\Windows Foreground.wav",
+        "C:\\Windows\\Media\\notify.wav",
+        "C:\\Windows\\Media\\Windows Notify.wav"
+    ];
+    try {
+        var fso = new ActiveXObject("Scripting.FileSystemObject");
+        for (var i = 0; i < candidates.length; i++) {
+            if (fso.FileExists(candidates[i])) return candidates[i];
+        }
+    } catch(e) {}
+    return null;
+}
+
+// Play audio element (data-URI WAV)
+function playDataAudio(uri, n, gap) {
+    n = n || 1; gap = gap || 420;
+    for (var i = 0; i < n; i++) {
         (function(d){ setTimeout(function(){
-            try { var a=document.createElement("audio"); a.src=BEEP; a.play(); } catch(e){}
-        }, d); })(i * 430);
+            try { var a = document.createElement("audio"); a.src = uri; a.play(); } catch(e){}
+        }, d); })(i * gap);
     }
 }
+
+// Play via PowerShell System.Media.SoundPlayer (real WAV file, always audible)
+function playWinWAV(path, reps) {
+    reps = reps || 1;
+    try {
+        var shell = new ActiveXObject("WScript.Shell");
+        var cmd = 'powershell -NoProfile -WindowStyle Hidden -Command "' +
+            '$sp=New-Object System.Media.SoundPlayer;\'' + path + '\'|' +
+            'ForEach-Object{$sp.SoundLocation=$_;$sp.Load()};' +
+            'for($i=0;$i-lt' + reps + ';$i++){$sp.PlaySync()}"';
+        shell.Run(cmd, 0, false);
+    } catch(e) {}
+}
+
+// Short warning beep (up to n times)
+function beep(n) {
+    if (!T.snd) return;
+    n = n || 1;
+    if (BEEP) {
+        playDataAudio(BEEP, n, 440);
+        return;
+    }
+    // Fallback: PC-speaker via PowerShell (always works on Windows)
+    try {
+        var shell = new ActiveXObject("WScript.Shell");
+        var seq = "";
+        for (var j = 0; j < n; j++) seq += "[console]::beep(660,180);";
+        shell.Run('powershell -NoProfile -WindowStyle Hidden -Command "' + seq + '"', 0, false);
+    } catch(e) {}
+}
+
+// Full alarm when time expires (louder, longer, multi-method)
+function triggerAlarm() {
+    if (!T.snd) return;
+
+    // Method 1: real Windows WAV via SoundPlayer (most audible)
+    if (WIN_WAV) {
+        playWinWAV(WIN_WAV, 3);
+    }
+
+    // Method 2: synthesised alarm WAV via audio element (parallel)
+    if (ALARM) {
+        playDataAudio(ALARM, 3, 900);
+    } else if (BEEP) {
+        playDataAudio(BEEP, 8, 380);
+    }
+
+    // Method 3: PC-speaker console beep as absolute fallback
+    if (!WIN_WAV && !ALARM && !BEEP) {
+        try {
+            var shell = new ActiveXObject("WScript.Shell");
+            shell.Run(
+                'powershell -NoProfile -WindowStyle Hidden -Command ' +
+                '"1..6|%{[console]::beep(880,160);Start-Sleep -Milliseconds 120;' +
+                '[console]::beep(1100,160);Start-Sleep -Milliseconds 120}"',
+                0, false
+            );
+        } catch(e) {}
+    }
+}
+
 
 // ---- HELPERS -----------------------------------------------
 function g(id) { return document.getElementById(id); }
@@ -613,7 +731,8 @@ function tick() {
 }
 
 function onExpiry() {
-    stopTimer(); beep(3);
+    stopTimer();
+    triggerAlarm();   // loud ringing alarm (multi-layer: WAV file → synth audio → PC beep)
     toast("&#9200;&nbsp;Time's Up!", "#f87171");
     flash(g("exp-view"));
     if (T.exam) {
@@ -676,8 +795,8 @@ function toggleExpand() {
 
 // ---- SCALE-TO-FIT ------------------------------------------
 // Base content dimensions at the default WIN_EX window size.
-// The body client area = window size minus chrome (title bar ~30px
-// + thick borders ~8px each side).  Measured: approx 420 x 558.
+// The body client area = window minus chrome (~30px title + ~8px borders each side).
+// Measured at default size: approx 420 x 558.
 var _BSW = 420;   // base body clientWidth
 var _BSH = 558;   // base body clientHeight
 
@@ -688,25 +807,21 @@ function rescale() {
     var bw = document.body.clientWidth  || _BSW;
     var bh = document.body.clientHeight || _BSH;
 
-    // Compute uniform scale that fits content in available space
-    var s = Math.min(bw / _BSW, bh / _BSH);
-    s = parseFloat(Math.max(0.5, Math.min(4.0, s)).toFixed(4));
+    // Non-uniform scale: each axis stretched independently
+    // so content always fills the full window with NO blank spaces.
+    var sx = parseFloat(Math.max(0.3, Math.min(5.0, bw / _BSW)).toFixed(4));
+    var sy = parseFloat(Math.max(0.3, Math.min(5.0, bh / _BSH)).toFixed(4));
 
-    // Position content as an absolute block so the transform
-    // origin (top-left of the scaled box) can be offset freely.
+    // Content box sits at top-left; transform expands outward
     ev.style.position = "absolute";
     ev.style.width    = _BSW + "px";
+    ev.style.left     = "0px";
+    ev.style.top      = "0px";
 
-    // Center the scaled box inside the body
-    var left = Math.max(0, Math.round((bw - _BSW * s) / 2));
-    var top  = Math.max(0, Math.round((bh - _BSH * s) / 2));
-    ev.style.left = left + "px";
-    ev.style.top  = top  + "px";
-
-    // Apply scale — IE9 needs the -ms- vendor prefix
-    ev.style.msTransform       = "scale(" + s + ")";
+    // IE9 requires -ms- prefix for transforms
+    ev.style.msTransform       = "scale(" + sx + "," + sy + ")";
     ev.style.msTransformOrigin = "top left";
-    ev.style.transform         = "scale(" + s + ")";
+    ev.style.transform         = "scale(" + sx + "," + sy + ")";
     ev.style.transformOrigin   = "top left";
 }
 
@@ -773,13 +888,16 @@ document.onkeydown = function(ev) {
 
 // ---- INIT --------------------------------------------------
 window.onload = function() {
-    BEEP = buildBeep();
     try {
         if (localStorage.getItem("gre-t")==="l") {
             T.dark=false; document.body.className="lt";
             g("btn-thm").innerHTML="&#9728;";
         }
     } catch(e) {}
+
+    BEEP     = buildBeep();        // short warning beep (synthesised)
+    ALARM    = buildAlarmWAV();    // longer alternating-tone alarm (synthesised)
+    WIN_WAV  = findWinWAV();       // real Windows .wav file for max reliability
 
     window.resizeTo(WIN_EX[0], WIN_EX[1]);
     initResizeGrip();
