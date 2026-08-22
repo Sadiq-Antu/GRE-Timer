@@ -1,9 +1,9 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <HTA:APPLICATION
     APPLICATIONNAME="GRE Timer"
-    BORDER="thin"
+    BORDER="thick"
     BORDERSTYLE="normal"
     CAPTION="yes"
     MAXIMIZEBUTTON="no"
@@ -18,71 +18,155 @@
 <meta charset="UTF-8">
 <title>GRE Timer</title>
 <style>
+/* ============================================================
+   RESET & BASE
+   ============================================================ */
 * { margin:0; padding:0; box-sizing:border-box; }
 html, body { width:100%; height:100%; overflow:hidden; }
 body { font-family:"Segoe UI",Tahoma,Arial,sans-serif; font-size:13px; }
 
-body        { background:#0d0d1a; color:#e2e8f0; }
-body .card  { background:#141428; border:1px solid #252550; }
-body .ghost { background:#1a1a38; border:1px solid #2d2d5a; color:#e2e8f0; }
+/* ============================================================
+   DARK THEME (default)
+   ============================================================ */
+body           { background:#0d0d1a; color:#e2e8f0; }
+body .ghost    { background:#1a1a38; border:1px solid #2d2d5a; color:#e2e8f0; }
 body .ghost:hover { background:#2a2a52; border-color:#3d3d72; }
-body .muted  { color:#7280a0; }
-body .ruler  { background:#252550; }
-body .rl-txt { color:#3a3a6a; }
+body .muted    { color:#7280a0; }
+body .ruler    { background:#252550; }
+body .rl-txt   { color:#3a3a6a; }
 body .ring-bg-stroke { stroke:#151530; }
-body #coll-bar   { background:#141428; border-bottom:1px solid #252550; }
+body #coll-bar   { background:#141428; border-bottom:2px solid #252550; }
 body #coll-badge { background:#1e1e40; color:#a78bfa; }
 body #custom-in  { background:#1a1a38; border:1px solid #2d2d5a; color:#e2e8f0; }
 body #prog-track { background:#1a1a38; }
-body #hint-bar   { color:#252550; }
+body #hint-bar   { color:#2a2a44; }
 body .pdot       { color:#2a2a4a; }
 body .div-lbl    { background:#0d0d1a; }
+body #modal-box  { background:#141430; border:1px solid #2d2d5a; }
+body #resize-grip { border-color:#2a2a4a; }
 
-body.lt        { background:#f0f4f8; color:#1e293b; }
-body.lt .card  { background:#fff; border:1px solid #dde4ed; }
-body.lt .ghost { background:#f0f4f8; border:1px solid #c9d4e4; color:#1e293b; }
+/* ============================================================
+   LIGHT THEME  (.lt on body)
+   ============================================================ */
+body.lt           { background:#f0f4f8; color:#1e293b; }
+body.lt .ghost    { background:#f0f4f8; border:1px solid #c9d4e4; color:#1e293b; }
 body.lt .ghost:hover { background:#e2eaf5; border-color:#a0b0c8; }
-body.lt .muted  { color:#64748b; }
-body.lt .ruler  { background:#dde4ed; }
-body.lt .rl-txt { color:#94a3b8; }
+body.lt .muted    { color:#64748b; }
+body.lt .ruler    { background:#dde4ed; }
+body.lt .rl-txt   { color:#94a3b8; }
 body.lt .ring-bg-stroke { stroke:#e2eaf5; }
-body.lt #coll-bar   { background:#fff; border-bottom:1px solid #dde4ed; }
+body.lt #coll-bar   { background:#fff; border-bottom:2px solid #dde4ed; }
 body.lt #coll-badge { background:#f0f4f8; color:#7c3aed; }
 body.lt #custom-in  { background:#f0f4f8; border:1px solid #c9d4e4; color:#1e293b; }
 body.lt #prog-track { background:#dde4ed; }
 body.lt #hint-bar   { color:#c9d4e4; }
 body.lt .pdot       { color:#c9d4e4; }
 body.lt .div-lbl    { background:#f0f4f8; }
+body.lt #modal-box  { background:#fff; border:1px solid #dde4ed; }
+body.lt #resize-grip { border-color:#c9d4e4; }
 
-/* ---- COLLAPSED BAR ---- */
-#coll-bar { display:none; height:62px; line-height:62px; padding:0 14px; white-space:nowrap; overflow:hidden; }
-#coll-icon  { font-size:20px; vertical-align:middle; margin-right:8px; }
-#coll-time  { font-family:"Courier New",monospace; font-size:31px; font-weight:700; letter-spacing:2px; vertical-align:middle; display:inline-block; width:99px; }
-#coll-badge { font-size:10px; font-weight:700; padding:2px 9px; border-radius:10px; vertical-align:middle; display:inline-block; max-width:110px; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
-#coll-st    { font-size:11px; vertical-align:middle; margin-left:10px; }
-#btn-exp    { float:right; margin-top:15px; font-size:11px; font-weight:700; padding:5px 14px; border-radius:6px; cursor:pointer; line-height:27px; }
+/* ============================================================
+   RESET CONFIRMATION MODAL
+   ============================================================ */
+#modal-bg {
+    display:none;
+    position:fixed; top:0; left:0; width:100%; height:100%;
+    background:rgba(0,0,0,.68);
+    z-index:9990;
+}
+#modal-wrap { display:table; width:100%; height:100%; }
+#modal-cell { display:table-cell; vertical-align:middle; text-align:center; }
+#modal-box {
+    display:inline-block;
+    width:238px; padding:24px 22px 20px;
+    border-radius:14px; text-align:center;
+    box-shadow:0 8px 30px rgba(0,0,0,.5);
+}
+#modal-icon  { font-size:30px; margin-bottom:8px; }
+#modal-title { font-size:15px; font-weight:700; margin-bottom:5px; }
+#modal-desc  { font-size:11px; margin-bottom:20px; }
+.m-btn {
+    display:inline-block; padding:7px 18px; border-radius:8px; cursor:pointer;
+    font-size:12px; font-weight:700;
+    font-family:"Segoe UI",Tahoma,Arial,sans-serif;
+    border:1px solid; margin:0 4px;
+}
+#m-yes { background:rgba(248,113,113,.18); border-color:#f87171; color:#f87171; }
+#m-yes:hover { background:rgba(248,113,113,.34); }
+#m-no  { background:rgba(59,130,246,.14);  border-color:#3b82f6; color:#60a5fa; }
+#m-no:hover  { background:rgba(59,130,246,.28); }
 
-/* ---- EXPANDED VIEW ---- */
+/* ============================================================
+   COLLAPSED BAR  (2 rows = 70 px)
+   ============================================================ */
+#coll-bar { display:none; }
+
+/* Row 1: timer info (40 px) */
+#coll-r1 {
+    height:40px; line-height:40px;
+    padding:0 12px; white-space:nowrap; overflow:hidden;
+}
+#coll-icon  { font-size:18px; vertical-align:middle; margin-right:6px; }
+#coll-time  {
+    font-family:"Courier New",monospace;
+    font-size:27px; font-weight:700; letter-spacing:2px;
+    vertical-align:middle; display:inline-block; width:84px;
+}
+#coll-badge {
+    font-size:10px; font-weight:700; padding:2px 8px; border-radius:10px;
+    vertical-align:middle; display:inline-block;
+    max-width:95px; overflow:hidden; white-space:nowrap; text-overflow:ellipsis;
+    margin-left:6px;
+}
+#coll-st  { font-size:11px; vertical-align:middle; margin-left:7px; }
+#btn-exp  {
+    float:right; height:24px; line-height:22px; margin-top:8px;
+    font-size:10px; font-weight:700; padding:0 10px; border-radius:5px;
+    cursor:pointer; width:auto;
+}
+
+/* Row 2: quick controls (30 px) */
+#coll-r2 { height:30px; line-height:30px; padding:0 12px; white-space:nowrap; }
+.cq-btn {
+    display:inline-block; height:24px; line-height:22px; padding:0 11px;
+    border-radius:6px; cursor:pointer; font-size:11px; font-weight:700;
+    font-family:"Segoe UI",Tahoma,Arial,sans-serif;
+    border:1px solid; margin-right:4px; vertical-align:middle;
+}
+.cq-btn:hover { opacity:.8; }
+#cq-go     { background:rgba(74,222,128,.12); border-color:#4ade80; color:#4ade80; }
+#cq-go.on  { background:rgba(74,222,128,.30); }
+#cq-pz     { background:rgba(250,204,21,.10);  border-color:#facc15; color:#facc15; }
+#cq-rs     { background:rgba(248,113,113,.10); border-color:#f87171; color:#f87171; }
+#coll-hint { font-size:9px; vertical-align:middle; margin-left:5px; }
+body    #coll-hint { color:#2e2e4a; }
+body.lt #coll-hint { color:#c9d4e4; }
+
+/* ============================================================
+   EXPANDED VIEW
+   ============================================================ */
 #exp-view { padding:10px 14px 6px; }
 
-#hdr { margin-bottom:7px; }
+#hdr       { margin-bottom:7px; }
 #hdr-title { display:inline-block; font-size:14px; font-weight:700; vertical-align:middle; }
 #hdr-btns  { display:inline-block; float:right; }
-.ibtn { display:inline-block; width:27px; height:27px; border-radius:7px; font-size:14px; text-align:center; line-height:25px; cursor:pointer; margin-left:5px; vertical-align:middle; }
+.ibtn {
+    display:inline-block; width:27px; height:27px; border-radius:7px;
+    font-size:14px; text-align:center; line-height:25px;
+    cursor:pointer; margin-left:5px; vertical-align:middle;
+}
 .ibtn:hover { background:#3b82f6 !important; border-color:#3b82f6 !important; color:#fff !important; }
 
-/* ---- RING AREA ---- */
-#ring-area { text-align:center; margin-bottom:7px; }
-#sec-lbl { font-size:10px; font-weight:700; letter-spacing:1px; text-transform:uppercase; margin-bottom:5px; height:14px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-
+/* Ring */
+#ring-area  { text-align:center; margin-bottom:7px; }
+#sec-lbl    { font-size:10px; font-weight:700; letter-spacing:1px; text-transform:uppercase; margin-bottom:5px; height:14px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 #ring-outer { position:relative; display:inline-block; width:156px; height:156px; margin-bottom:5px; }
 #ring-svg   { position:absolute; top:0; left:0; }
 #ring-inner { position:absolute; top:0; left:0; width:100%; height:100%; text-align:center; }
 #ri-tbl     { display:table; width:100%; height:100%; }
 #ri-cell    { display:table-cell; vertical-align:middle; text-align:center; }
-
-#time-big { font-family:"Courier New",monospace; font-size:34px; font-weight:700; letter-spacing:2px; display:block; }
-#time-lbl { font-size:9px; letter-spacing:1.5px; text-transform:uppercase; display:block; margin-top:3px; }
+#time-big   { font-family:"Courier New",monospace; font-size:34px; font-weight:700; letter-spacing:2px; display:block; }
+#time-lbl   { font-size:9px; letter-spacing:1.5px; text-transform:uppercase; display:block; margin-top:3px; }
 
 .tc-ok  { color:#4ade80; }
 .tc-wrn { color:#facc15; }
@@ -92,59 +176,57 @@ body.lt .div-lbl    { background:#f0f4f8; }
 .sk-err { stroke:#f87171; }
 
 #stats-row { font-size:11px; margin-bottom:7px; text-align:center; }
-#stats-row span { display:inline-block; margin:0 10px; }
+#stats-row span   { display:inline-block; margin:0 10px; }
 #stats-row strong { font-weight:700; }
 
-/* ---- DIVIDERS ---- */
-.dv { margin:5px 0 4px; height:14px; position:relative; }
+/* Dividers */
+.dv      { margin:5px 0 4px; height:14px; position:relative; }
 .dv-line { position:absolute; top:50%; left:0; right:0; height:1px; }
 .div-lbl { position:absolute; top:0; left:50%; height:14px; transform:translateX(-50%); font-size:9px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; white-space:nowrap; padding:0 7px; }
 
-/* ---- SECTION BUTTONS ---- */
-#sec-tbl { width:100%; border-collapse:separate; border-spacing:3px; margin-bottom:4px; }
+/* Section buttons */
+#sec-tbl    { width:100%; border-collapse:separate; border-spacing:3px; margin-bottom:4px; }
 #sec-tbl td { width:33.33%; padding:0; }
-
-.sbtn { display:block; width:100%; padding:6px 3px; border-radius:8px; cursor:pointer; font-size:11px; font-weight:700; text-align:center; font-family:"Segoe UI",Tahoma,Arial,sans-serif; border:1px solid; line-height:1.3; }
-.sbtn .ss { display:block; font-size:9px; font-weight:400; margin-top:1px; }
+.sbtn       { display:block; width:100%; padding:6px 3px; border-radius:8px; cursor:pointer; font-size:11px; font-weight:700; text-align:center; font-family:"Segoe UI",Tahoma,Arial,sans-serif; border:1px solid; line-height:1.3; }
+.sbtn .ss   { display:block; font-size:9px; font-weight:400; margin-top:1px; }
 body    .sbtn .ss { color:#4a5a7a; }
 body.lt .sbtn .ss { color:#94a3b8; }
-.sbtn.on { background:rgba(59,130,246,.15) !important; border-color:#3b82f6 !important; color:#60a5fa !important; }
+.sbtn.on     { background:rgba(59,130,246,.15) !important; border-color:#3b82f6 !important; color:#60a5fa !important; }
 .sbtn.on .ss { color:#93c5fd !important; }
 
-#btn-exam { display:block; width:100%; margin-top:3px; padding:6px 8px; border-radius:8px; cursor:pointer; font-size:11px; font-weight:700; text-align:center; font-family:"Segoe UI",Tahoma,Arial,sans-serif; border:1px solid #7c3aed; background:rgba(139,92,246,.10); color:#a78bfa; }
-#btn-exam .ss { display:block; font-size:9px; font-weight:400; margin-top:1px; color:#7c3aed; }
+#btn-exam      { display:block; width:100%; margin-top:3px; padding:6px 8px; border-radius:8px; cursor:pointer; font-size:11px; font-weight:700; text-align:center; font-family:"Segoe UI",Tahoma,Arial,sans-serif; border:1px solid #7c3aed; background:rgba(139,92,246,.10); color:#a78bfa; }
+#btn-exam .ss  { display:block; font-size:9px; font-weight:400; margin-top:1px; color:#7c3aed; }
 #btn-exam:hover { background:rgba(139,92,246,.22); }
-#btn-exam.on { background:rgba(139,92,246,.28); border-color:#a78bfa; }
+#btn-exam.on   { background:rgba(139,92,246,.28); border-color:#a78bfa; }
 
-/* ---- EXAM PROGRESS ---- */
-#exam-prog { display:none; margin-bottom:4px; }
+/* Exam progress */
+#exam-prog     { display:none; margin-bottom:4px; }
 #exam-prog.vis { display:block; }
-#prog-track { height:5px; border-radius:3px; overflow:hidden; margin:3px 0; }
-#prog-fill  { height:100%; border-radius:3px; background:#4ade80; width:0%; }
-#prog-dots  { font-size:9px; }
-#prog-dots td { text-align:center; width:20%; padding:0 2px; }
+#prog-track    { height:5px; border-radius:3px; overflow:hidden; margin:3px 0; }
+#prog-fill     { height:100%; border-radius:3px; background:#4ade80; width:0%; }
+#prog-dots td  { text-align:center; width:20%; padding:0 2px; font-size:9px; }
 .pdot.done { color:#4ade80 !important; }
 .pdot.curr { color:#60a5fa !important; font-weight:700; }
 
-/* ---- CONTROL BUTTONS ---- */
-#ctrl-tbl { width:100%; border-collapse:separate; border-spacing:0; }
+/* Control buttons */
+#ctrl-tbl    { width:100%; border-collapse:separate; border-spacing:0; }
 #ctrl-tbl td { width:33.33%; padding:0; }
 #ctrl-tbl td + td { padding-left:5px; }
-.cbtn { display:block; width:100%; padding:9px 4px; border-radius:8px; cursor:pointer; font-size:12px; font-weight:700; text-align:center; font-family:"Segoe UI",Tahoma,Arial,sans-serif; border:1px solid; }
-.cbtn:hover { opacity:.8; }
-#btn-go { background:rgba(74,222,128,.12); border-color:#4ade80; color:#4ade80; }
-#btn-go.on { background:rgba(74,222,128,.26); }
-#btn-pz { background:rgba(250,204,21,.10);  border-color:#facc15; color:#facc15; }
-#btn-rs { background:rgba(248,113,113,.10); border-color:#f87171; color:#f87171; }
+.cbtn        { display:block; width:100%; padding:9px 4px; border-radius:8px; cursor:pointer; font-size:12px; font-weight:700; text-align:center; font-family:"Segoe UI",Tahoma,Arial,sans-serif; border:1px solid; }
+.cbtn:hover  { opacity:.8; }
+#btn-go      { background:rgba(74,222,128,.12); border-color:#4ade80; color:#4ade80; }
+#btn-go.on   { background:rgba(74,222,128,.28); }
+#btn-pz      { background:rgba(250,204,21,.10);  border-color:#facc15; color:#facc15; }
+#btn-rs      { background:rgba(248,113,113,.10); border-color:#f87171; color:#f87171; }
 
-/* ---- CUSTOM ROW ---- */
-#cust-row { margin-top:6px; white-space:nowrap; }
-#custom-in { width:calc(100% - 96px); height:30px; padding:0 9px; border-radius:7px; font-size:12px; font-family:"Segoe UI",Tahoma,Arial,sans-serif; outline:none; vertical-align:middle; }
-#btn-cset { width:90px; height:30px; border-radius:7px; cursor:pointer; font-size:11px; font-weight:700; font-family:"Segoe UI",Tahoma,Arial,sans-serif; background:rgba(59,130,246,.12); border:1px solid #3b82f6; color:#60a5fa; vertical-align:middle; margin-left:5px; }
-#btn-cset:hover { background:rgba(59,130,246,.25); }
+/* Custom timer */
+#cust-row  { margin-top:6px; white-space:nowrap; }
+#custom-in { width:calc(100% - 97px); height:30px; padding:0 9px; border-radius:7px; font-size:12px; font-family:"Segoe UI",Tahoma,Arial,sans-serif; outline:none; vertical-align:middle; }
+#btn-cset  { width:91px; height:30px; border-radius:7px; cursor:pointer; font-size:11px; font-weight:700; font-family:"Segoe UI",Tahoma,Arial,sans-serif; background:rgba(59,130,246,.12); border:1px solid #3b82f6; color:#60a5fa; vertical-align:middle; margin-left:5px; }
+#btn-cset:hover { background:rgba(59,130,246,.26); }
 
-/* ---- BOTTOM ROW ---- */
-#bot-row { margin-top:7px; }
+/* Bottom row */
+#bot-row  { margin-top:7px; }
 #hint-bar { font-size:9px; letter-spacing:.4px; display:inline-block; vertical-align:middle; }
 #btn-coll { float:right; font-size:11px; padding:4px 13px; border-radius:14px; cursor:pointer; font-family:"Segoe UI",Tahoma,Arial,sans-serif; background:transparent; vertical-align:middle; }
 body    #btn-coll { border:1px solid #2a2a4a; color:#4a5a7a; }
@@ -152,77 +234,116 @@ body.lt #btn-coll { border:1px solid #c9d4e4; color:#94a3b8; }
 #btn-coll:hover { background:#252545 !important; color:#e2e8f0 !important; }
 body.lt #btn-coll:hover { background:#e2eaf5 !important; color:#1e293b !important; }
 
-/* ---- TOAST ---- */
+/* Resize grip - L-shaped corner indicator */
+#resize-grip {
+    position:fixed; bottom:0; right:0;
+    width:14px; height:14px;
+    cursor:se-resize;
+    border-right:2px solid;
+    border-bottom:2px solid;
+    border-radius:0 0 2px 0;
+    -ms-user-select:none;
+    user-select:none;
+}
+
+/* Toast */
 #toast { position:fixed; top:7px; right:7px; z-index:9999; padding:6px 14px; border-radius:8px; font-size:12px; font-weight:700; color:#fff; display:none; }
 
-/* ---- ANIMATIONS ---- */
-@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.6} }
+/* Animations */
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.58} }
 .pulse { animation:pulse 1s ease-in-out infinite; }
-@keyframes fls { 0%,100%{opacity:1} 50%{opacity:.4} }
+@keyframes fls { 0%,100%{opacity:1} 50%{opacity:.38} }
 .fls { animation:fls .55s ease-in-out 4; }
 </style>
 </head>
 <body>
 
-<div id="toast"></div>
-
-<!-- ========= COLLAPSED BAR ========= -->
-<div id="coll-bar">
-    <span id="coll-icon">&#127891;</span>
-    <span id="coll-time" class="tc-ok">00:00</span>&nbsp;
-    <span id="coll-badge">&#8212;</span>
-    <span id="coll-st" class="muted">Ready</span>
-    <button class="ghost ibtn" id="btn-exp"
-        style="float:right;margin-top:15px;line-height:27px;font-size:11px;font-weight:700;padding:0 13px;width:auto;"
-        onclick="toggleExpand()">&#9650; Expand</button>
+<!-- =========================================================
+     RESET CONFIRMATION MODAL
+     ========================================================= -->
+<div id="modal-bg">
+    <div id="modal-wrap">
+        <div id="modal-cell">
+            <div id="modal-box">
+                <div id="modal-icon">&#8635;</div>
+                <div id="modal-title">Reset Timer?</div>
+                <div id="modal-desc" class="muted">Current progress will be lost.</div>
+                <div>
+                    <button class="m-btn" id="m-yes" onclick="doReset()">&#8635; Yes, Reset</button>
+                    <button class="m-btn" id="m-no"  onclick="hideModal()">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
-<!-- ========= EXPANDED VIEW ========= -->
+<!-- =========================================================
+     TOAST
+     ========================================================= -->
+<div id="toast"></div>
+
+<!-- =========================================================
+     COLLAPSED BAR
+     ========================================================= -->
+<div id="coll-bar">
+    <!-- Row 1: timer + info -->
+    <div id="coll-r1">
+        <span id="coll-icon">&#127891;</span>
+        <span id="coll-time" class="tc-ok">00:00</span>
+        <span id="coll-badge">&#8212;</span>
+        <span id="coll-st" class="muted">Ready</span>
+        <button class="ghost ibtn" id="btn-exp"
+            style="float:right;height:24px;line-height:22px;font-size:10px;font-weight:700;padding:0 10px;width:auto;margin-top:8px;"
+            onclick="toggleExpand()">&#9650; Expand</button>
+    </div>
+    <!-- Row 2: Start / Pause / Reset -->
+    <div id="coll-r2">
+        <button class="cq-btn" id="cq-go" onclick="startTimer()">&#9654; Start</button>
+        <button class="cq-btn" id="cq-pz" onclick="pauseTimer()">&#9646;&#9646; Pause</button>
+        <button class="cq-btn" id="cq-rs" onclick="confirmReset()">&#8635; Reset</button>
+        <span id="coll-hint">Space: Start/Pause &nbsp;&middot;&nbsp; Alt+E: Expand</span>
+    </div>
+</div>
+
+<!-- =========================================================
+     EXPANDED VIEW
+     ========================================================= -->
 <div id="exp-view">
 
     <!-- Header -->
     <div id="hdr">
         <div id="hdr-btns">
-            <button class="ghost ibtn" id="btn-snd" title="Sound (S)" onclick="toggleSound()">&#128266;</button>
-            <button class="ghost ibtn" id="btn-thm" title="Theme  (T)" onclick="toggleTheme()">&#127769;</button>
+            <button class="ghost ibtn" id="btn-snd" title="Toggle Sound (S)" onclick="toggleSound()">&#128266;</button>
+            <button class="ghost ibtn" id="btn-thm" title="Toggle Theme (T)" onclick="toggleTheme()">&#127769;</button>
         </div>
-        <div id="hdr-title">
-            <span>&#127891;</span>&nbsp;<span>GRE Practice Timer</span>
-        </div>
+        <div id="hdr-title"><span>&#127891;</span>&nbsp;<span>GRE Practice Timer</span></div>
     </div>
 
-    <!-- Ring -->
+    <!-- Timer ring -->
     <div id="ring-area">
         <div id="sec-lbl" class="muted">Select a Section Below</div>
         <div id="ring-outer">
             <svg id="ring-svg" viewBox="0 0 156 156" width="156" height="156">
-                <circle class="ring-bg-stroke" cx="78" cy="78" r="66"
-                    fill="none" stroke-width="9"/>
+                <circle class="ring-bg-stroke" cx="78" cy="78" r="66" fill="none" stroke-width="9"/>
                 <circle id="ring-prog" cx="78" cy="78" r="66"
-                    fill="none" class="sk-ok"
-                    stroke-width="9"
-                    stroke-dasharray="414.69"
-                    stroke-dashoffset="0"
-                    stroke-linecap="round"
-                    transform="rotate(-90 78 78)"/>
+                    fill="none" class="sk-ok" stroke-width="9"
+                    stroke-dasharray="414.69" stroke-dashoffset="0"
+                    stroke-linecap="round" transform="rotate(-90 78 78)"/>
             </svg>
             <div id="ring-inner">
-                <div id="ri-tbl">
-                    <div id="ri-cell">
-                        <span id="time-big" class="tc-ok">00:00</span>
-                        <span id="time-lbl" class="muted">remaining</span>
-                    </div>
-                </div>
+                <div id="ri-tbl"><div id="ri-cell">
+                    <span id="time-big" class="tc-ok">00:00</span>
+                    <span id="time-lbl" class="muted">remaining</span>
+                </div></div>
             </div>
         </div>
-
         <div id="stats-row" class="muted">
             <span>&#9201; Per&nbsp;Q:&nbsp;<strong id="st-pq">&#8212;</strong></span>
             <span>&#128221; Questions:&nbsp;<strong id="st-q">&#8212;</strong></span>
         </div>
     </div>
 
-    <!-- Section buttons -->
+    <!-- Sections -->
     <div class="dv"><div class="dv-line ruler"></div><div class="div-lbl rl-txt">GRE Sections</div></div>
     <table id="sec-tbl" cellspacing="0" cellpadding="0">
         <tr>
@@ -230,10 +351,10 @@ body.lt #btn-coll:hover { background:#e2eaf5 !important; color:#1e293b !importan
             <td><button class="ghost sbtn" id="s1" onclick="selSec(1)">&#128218; Verbal 1<span class="ss">18 min &middot; 12 Q</span></button></td>
             <td><button class="ghost sbtn" id="s2" onclick="selSec(2)">&#128218; Verbal 2<span class="ss">23 min &middot; 15 Q</span></button></td>
         </tr>
-        <tr style="margin-top:3px;">
-            <td style="padding-top:3px;"><button class="ghost sbtn" id="s3" onclick="selSec(3)">&#128290; Quant 1<span class="ss">21 min &middot; 12 Q</span></button></td>
-            <td style="padding-top:3px;"><button class="ghost sbtn" id="s4" onclick="selSec(4)">&#128290; Quant 2<span class="ss">26 min &middot; 15 Q</span></button></td>
-            <td style="padding-top:3px;"><button class="ghost sbtn" id="s-fe" onclick="startExam()">&#127919; Full Exam<span class="ss">1h 58m &middot; all</span></button></td>
+        <tr>
+            <td><button class="ghost sbtn" id="s3" onclick="selSec(3)">&#128290; Quant 1<span class="ss">21 min &middot; 12 Q</span></button></td>
+            <td><button class="ghost sbtn" id="s4" onclick="selSec(4)">&#128290; Quant 2<span class="ss">26 min &middot; 15 Q</span></button></td>
+            <td><button class="ghost sbtn" id="s-fe" onclick="startExam()">&#127919; Full Exam<span class="ss">1h 58m &middot; all</span></button></td>
         </tr>
     </table>
     <button id="btn-exam" onclick="startExam()">
@@ -241,13 +362,13 @@ body.lt #btn-coll:hover { background:#e2eaf5 !important; color:#1e293b !importan
         <span class="ss">Writing &#8594; Verbal 1&amp;2 &#8594; Quant 1&amp;2 &nbsp;|&nbsp; Total: 1 h 58 min</span>
     </button>
 
-    <!-- Exam progress bar -->
+    <!-- Exam progress -->
     <div id="exam-prog">
         <div class="dv" style="margin-top:6px;"><div class="dv-line ruler"></div><div class="div-lbl rl-txt">Exam Progress</div></div>
         <div id="prog-track"><div id="prog-fill"></div></div>
         <table id="prog-dots" width="100%" cellspacing="0" cellpadding="0">
             <tr>
-                <td><span class="pdot" id="d0">&#9999; Writing</span></td>
+                <td><span class="pdot" id="d0">&#9999;&nbsp;Writing</span></td>
                 <td><span class="pdot" id="d1">V1</span></td>
                 <td><span class="pdot" id="d2">V2</span></td>
                 <td><span class="pdot" id="d3">Q1</span></td>
@@ -262,7 +383,7 @@ body.lt #btn-coll:hover { background:#e2eaf5 !important; color:#1e293b !importan
         <tr>
             <td><button class="cbtn" id="btn-go" onclick="startTimer()">&#9654; Start</button></td>
             <td style="padding-left:5px;"><button class="cbtn" id="btn-pz" onclick="pauseTimer()">&#9646;&#9646; Pause</button></td>
-            <td style="padding-left:5px;"><button class="cbtn" id="btn-rs" onclick="resetTimer()">&#8635; Reset</button></td>
+            <td style="padding-left:5px;"><button class="cbtn" id="btn-rs" onclick="confirmReset()">&#8635; Reset</button></td>
         </tr>
     </table>
 
@@ -272,17 +393,28 @@ body.lt #btn-coll:hover { background:#e2eaf5 !important; color:#1e293b !importan
         <button id="btn-cset" onclick="setCustom()">&#9654; Set Custom</button>
     </div>
 
-    <!-- Bottom row -->
+    <!-- Bottom -->
     <div id="bot-row">
         <button id="btn-coll" onclick="toggleExpand()">&#9660; Collapse</button>
-        <span id="hint-bar">Space: Start/Pause &nbsp;&middot;&nbsp; 1&#8211;5: Sections &nbsp;&middot;&nbsp; F: Full Exam &nbsp;&middot;&nbsp; Ctrl+R: Reset &nbsp;&middot;&nbsp; S: Sound &nbsp;&middot;&nbsp; T: Theme</span>
+        <span id="hint-bar">Space:Start/Pause &middot; 1&#8211;5:Sections &middot; F:Full Exam &middot; Ctrl+R:Reset &middot; S:Sound &middot; T:Theme</span>
     </div>
 
 </div>
 
+<!-- Drag-to-resize corner grip -->
+<div id="resize-grip" title="Drag to resize window"></div>
+
 <script>
 "use strict";
-var CIRC = 414.69; // 2 * PI * 66
+// ============================================================
+//  GRE PRACTICE TIMER  v2  (Standalone HTA / mshta.exe)
+//  New in v2:
+//    1. Start / Pause / Reset available in collapsed bar
+//    2. Resizable: BORDER=thick native handles + JS drag grip
+//    3. Reset shows confirmation modal (no accidental resets)
+// ============================================================
+
+var CIRC = 414.69;   // 2 * PI * 66
 
 var SECS = [
     { name:"Analytical Writing",    shrt:"Writing",  dur:1800, q:1  },
@@ -292,118 +424,186 @@ var SECS = [
     { name:"Quant Reasoning  S2",   shrt:"Quant 2",  dur:1560, q:15 }
 ];
 
-// Adjust these two lines if the window is too large or too small on your screen:
-var WIN_EX = [448, 600];
-var WIN_CO = [448, 93];
+// Adjust these if the window is too big/small on your screen
+var WIN_EX = [450, 604];
+var WIN_CO = [450, 108];   // 2-row collapsed bar (70 px) + chrome
+var MIN_W  = 340, MIN_H = 108;
 
-var T = { idx:-1, left:0, total:0, run:false, iv:null, snd:true, dark:true, open:true, exam:false, exIdx:0, cname:null };
+var T = {
+    idx:-1, left:0, total:0, run:false, iv:null,
+    snd:true, dark:true, open:true,
+    exam:false, exIdx:0, cname:null
+};
+
 var BEEP = null;
 
+// ---- AUDIO -------------------------------------------------
 function buildBeep() {
     try {
         var sr=8000, tones=[660,880,1100], seg=Math.floor(sr*0.16);
         var ns=seg*tones.length, fz=36+ns, b=[], t, s, env, v, i, str;
-        b.push(82,73,70,70); b.push(fz&255,(fz>>8)&255,(fz>>16)&255,(fz>>24)&255); b.push(87,65,86,69);
-        b.push(102,109,116,32); b.push(16,0,0,0); b.push(1,0); b.push(1,0);
+        b.push(82,73,70,70);
+        b.push(fz&255,(fz>>8)&255,(fz>>16)&255,(fz>>24)&255);
+        b.push(87,65,86,69, 102,109,116,32, 16,0,0,0, 1,0, 1,0);
         b.push(sr&255,(sr>>8)&255,(sr>>16)&255,(sr>>24)&255);
         b.push(sr&255,(sr>>8)&255,(sr>>16)&255,(sr>>24)&255);
-        b.push(1,0); b.push(8,0);
-        b.push(100,97,116,97); b.push(ns&255,(ns>>8)&255,(ns>>16)&255,(ns>>24)&255);
-        for (t=0;t<tones.length;t++) for (s=0;s<seg;s++) { env=Math.min(s,seg-s,80)/80; v=128+Math.round(105*env*Math.sin(2*Math.PI*tones[t]*s/sr)); b.push(v&0xFF); }
-        str=""; for (i=0;i<b.length;i++) str+=String.fromCharCode(b[i]);
-        return "data:audio/wav;base64,"+btoa(str);
+        b.push(1,0, 8,0, 100,97,116,97);
+        b.push(ns&255,(ns>>8)&255,(ns>>16)&255,(ns>>24)&255);
+        for (t=0;t<tones.length;t++) {
+            for (s=0;s<seg;s++) {
+                env = Math.min(s, seg-s, 80) / 80;
+                v   = 128 + Math.round(105*env*Math.sin(2*Math.PI*tones[t]*s/sr));
+                b.push(v & 0xFF);
+            }
+        }
+        str = "";
+        for (i=0; i<b.length; i++) str += String.fromCharCode(b[i]);
+        return "data:audio/wav;base64," + btoa(str);
     } catch(e) { return null; }
 }
 
 function beep(n) {
-    if (!T.snd||!BEEP) return;
-    n=n||1;
-    for (var i=0;i<n;i++) (function(d){ setTimeout(function(){ try{ var a=document.createElement("audio"); a.src=BEEP; a.play(); }catch(e){} },d); })(i*430);
+    if (!T.snd || !BEEP) return;
+    n = n || 1;
+    for (var i=0; i<n; i++) {
+        (function(d){ setTimeout(function(){
+            try { var a=document.createElement("audio"); a.src=BEEP; a.play(); } catch(e){}
+        }, d); })(i * 430);
+    }
 }
 
+// ---- HELPERS -----------------------------------------------
 function g(id) { return document.getElementById(id); }
 
-function fmtTime(s) { var m=Math.floor(s/60),r=s%60; return (m<10?"0":"")+m+":"+(r<10?"0":"")+r; }
+function fmtTime(s) {
+    var m = Math.floor(s/60), r = s%60;
+    return (m<10?"0":"")+m+":"+(r<10?"0":"")+r;
+}
 
-function fmtPQ(tot,q) {
-    if (!q||q<2) return "&#8212;";
-    var p=Math.floor(tot/q),m=Math.floor(p/60),s=p%60;
+function fmtPQ(tot, q) {
+    if (!q || q<2) return "&#8212;";
+    var p=Math.floor(tot/q), m=Math.floor(p/60), s=p%60;
     return m>0 ? m+"m "+(s?s+"s":"") : s+"s";
 }
 
 function cstate() {
     if (!T.total) return "ok";
-    var r=T.left/T.total;
-    return r<=0.10?"err":r<=0.25?"wrn":"ok";
+    var r = T.left / T.total;
+    return r<=0.10 ? "err" : r<=0.25 ? "wrn" : "ok";
 }
 
+// ---- DISPLAY -----------------------------------------------
 function redraw() {
-    var cs=cstate(), tc="tc-"+cs, sc="sk-"+cs, ts=fmtTime(T.left);
-    var pct=T.total>0?T.left/T.total:0, off=(CIRC*(1-pct)).toFixed(2);
-    g("time-big").className=tc; g("time-big").innerHTML=ts;
-    g("coll-time").className=tc; g("coll-time").innerHTML=ts;
-    var rp=g("ring-prog"); rp.style.strokeDashoffset=off; rp.className=sc;
-    var ro=g("ring-outer"); ro.className=(cs==="err"&&T.run)?"pulse":"";
-    var st=T.run?"&#9654; Running":(T.left===0&&T.total>0?"&#10003; Done":"&#9646;&#9646; Paused");
-    g("coll-st").innerHTML=st;
+    var cs  = cstate(), tc = "tc-"+cs, sc = "sk-"+cs, ts = fmtTime(T.left);
+    var pct = T.total>0 ? T.left/T.total : 0;
+    var off = (CIRC * (1-pct)).toFixed(2);
+
+    g("time-big").className = tc;  g("time-big").innerHTML = ts;
+    g("coll-time").className = tc; g("coll-time").innerHTML = ts;
+
+    var rp = g("ring-prog");
+    rp.style.strokeDashoffset = off;
+    rp.className = sc;
+    g("ring-outer").className = (cs==="err" && T.run) ? "pulse" : "";
+
+    var onCls = T.run ? " on" : "";
+    g("btn-go").className = "cbtn" + onCls;
+    g("cq-go").className  = "cq-btn" + onCls;
+
+    var st = T.run ? "&#9654;&nbsp;Running"
+           : (T.left===0 && T.total>0 ? "&#10003;&nbsp;Done" : "&#9646;&#9646;&nbsp;Paused");
+    g("coll-st").innerHTML = st;
 }
 
 function refreshInfo() {
-    var sec=T.idx>=0?SECS[T.idx]:null;
-    var name=T.cname||(sec?sec.name:"Select a Section Below");
-    var bdg=T.cname?"Custom":(sec?sec.shrt:"&#8212;");
-    g("sec-lbl").innerHTML=name; g("coll-badge").innerHTML=bdg;
-    if (sec&&sec.q>1) { g("st-pq").innerHTML=fmtPQ(T.total,sec.q); g("st-q").innerHTML=sec.q; }
-    else { g("st-pq").innerHTML="&#8212;"; g("st-q").innerHTML=sec?(sec.q===1?"1 (essay)":"&#8212;"):"&#8212;"; }
+    var sec  = T.idx>=0 ? SECS[T.idx] : null;
+    var name = T.cname || (sec ? sec.name : "Select a Section Below");
+    var bdg  = T.cname ? "Custom" : (sec ? sec.shrt : "&#8212;");
+    g("sec-lbl").innerHTML    = name;
+    g("coll-badge").innerHTML = bdg;
+    if (sec && sec.q>1) {
+        g("st-pq").innerHTML = fmtPQ(T.total, sec.q);
+        g("st-q").innerHTML  = sec.q;
+    } else {
+        g("st-pq").innerHTML = "&#8212;";
+        g("st-q").innerHTML  = sec ? (sec.q===1 ? "1 (essay)" : "&#8212;") : "&#8212;";
+    }
 }
 
+// ---- SECTION SELECTION -------------------------------------
 function clearBtns() {
-    var i; for (i=0;i<5;i++) { var b=g("s"+i); if(b) b.className="ghost sbtn"; }
+    var i;
+    for (i=0;i<5;i++) { var b=g("s"+i); if(b) b.className="ghost sbtn"; }
     var fe=g("s-fe"); if(fe) fe.className="ghost sbtn";
-    var be=g("btn-exam"); be.className=""; be.style.background="rgba(139,92,246,.10)"; be.style.borderColor="#7c3aed"; be.style.color="#a78bfa";
+    var be=g("btn-exam");
+    be.className="";
+    be.style.background  = "rgba(139,92,246,.10)";
+    be.style.borderColor = "#7c3aed";
+    be.style.color       = "#a78bfa";
 }
 
 function selSec(idx) {
     stopTimer(); clearBtns();
     T.exam=false; T.idx=idx; T.cname=null;
     T.left=T.total=SECS[idx].dur;
-    g("s"+idx).className="ghost sbtn on";
-    g("exam-prog").className="";
+    g("s"+idx).className = "ghost sbtn on";
+    g("exam-prog").className = "";
     refreshInfo(); redraw();
 }
 
 function startExam() {
     stopTimer(); clearBtns();
     T.exam=true; T.exIdx=0; T.cname=null;
-    var be=g("btn-exam"); be.className="on"; be.style.background="rgba(139,92,246,.28)"; be.style.borderColor="#a78bfa";
+    var be=g("btn-exam");
+    be.className="on";
+    be.style.background  = "rgba(139,92,246,.28)";
+    be.style.borderColor = "#a78bfa";
     var fe=g("s-fe"); if(fe) fe.className="ghost sbtn on";
-    g("exam-prog").className="vis";
+    g("exam-prog").className = "vis";
     loadExSec(0); startTimer();
 }
 
-function loadExSec(idx) { T.idx=idx; T.left=T.total=SECS[idx].dur; refreshInfo(); redraw(); updProg(); }
+function loadExSec(idx) {
+    T.idx=idx; T.left=T.total=SECS[idx].dur;
+    refreshInfo(); redraw(); updProg();
+}
 
 function updProg() {
-    var i,d, pct=(T.exIdx/SECS.length)*100;
-    g("prog-fill").style.width=pct+"%";
-    for (i=0;i<SECS.length;i++) { d=g("d"+i); d.className="pdot"+(i<T.exIdx?" done":i===T.exIdx?" curr":""); }
+    var i, d, pct = (T.exIdx/SECS.length)*100;
+    g("prog-fill").style.width = pct+"%";
+    for (i=0;i<SECS.length;i++) {
+        d=g("d"+i);
+        d.className = "pdot"+(i<T.exIdx?" done":i===T.exIdx?" curr":"");
+    }
 }
 
+// ---- TIMER CONTROL -----------------------------------------
 function startTimer() {
-    if (T.run||T.left===0) return;
-    T.run=true; g("btn-go").className="cbtn on";
-    T.iv=setInterval(tick,1000); redraw();
+    if (T.run || T.left===0) return;
+    T.run = true;
+    T.iv  = setInterval(tick, 1000);
+    redraw();
 }
+
 function pauseTimer() {
     if (!T.run) return;
-    T.run=false; clearInterval(T.iv); T.iv=null;
-    g("btn-go").className="cbtn"; redraw();
+    T.run = false; clearInterval(T.iv); T.iv = null; redraw();
 }
-function stopTimer() { T.run=false; clearInterval(T.iv); T.iv=null; g("btn-go").className="cbtn"; }
-function resetTimer() { stopTimer(); T.left=T.total; redraw(); }
+
+function stopTimer() {
+    T.run = false; clearInterval(T.iv); T.iv = null;
+}
+
+// confirmReset: show modal instead of resetting immediately
+function confirmReset() {
+    if (T.left===0 && T.total===0) return;
+    g("modal-bg").style.display = "block";
+}
+function hideModal() { g("modal-bg").style.display = "none"; }
+function doReset()   { hideModal(); stopTimer(); T.left = T.total; redraw(); }
 
 function tick() {
-    if (T.left>0) {
+    if (T.left > 0) {
         T.left--;
         if (T.left===300) beep(1);
         if (T.left===60)  beep(1);
@@ -414,67 +614,140 @@ function tick() {
 
 function onExpiry() {
     stopTimer(); beep(3);
-    toast("&#9200;  Time&rsquo;s Up!","#f87171"); flash(g("exp-view"));
+    toast("&#9200;&nbsp;Time's Up!", "#f87171");
+    flash(g("exp-view"));
     if (T.exam) {
         T.exIdx++;
-        if (T.exIdx<SECS.length) { setTimeout(function(){ loadExSec(T.exIdx); startTimer(); },2200); }
-        else {
-            g("sec-lbl").innerHTML="&#127881;  Full Exam Complete!"; g("coll-badge").innerHTML="Done!";
-            g("prog-fill").style.width="100%";
+        if (T.exIdx < SECS.length) {
+            setTimeout(function(){ loadExSec(T.exIdx); startTimer(); }, 2200);
+        } else {
+            g("sec-lbl").innerHTML    = "&#127881;&nbsp;Full Exam Complete!";
+            g("coll-badge").innerHTML = "Done!";
+            g("prog-fill").style.width = "100%";
             var i; for (i=0;i<SECS.length;i++) g("d"+i).className="pdot done";
-            toast("&#127881;  Exam Complete! Great job!","#4ade80");
+            toast("&#127881;&nbsp;Exam Complete! Great job!", "#4ade80");
         }
     }
 }
 
+// ---- CUSTOM TIMER ------------------------------------------
 function setCustom() {
-    var v=parseInt(g("custom-in").value,10);
-    if (!v||v<1||v>999) { toast("&#9888;  Enter 1&#8211;999 minutes","#facc15"); return; }
+    var v = parseInt(g("custom-in").value, 10);
+    if (!v||v<1||v>999) { toast("&#9888;&nbsp;Enter 1&#8211;999 minutes","#facc15"); return; }
     stopTimer(); clearBtns();
-    T.exam=false; T.idx=-1; T.cname="Custom ("+v+" min)";
-    T.left=T.total=v*60;
-    g("exam-prog").className=""; g("custom-in").value="";
+    T.exam=false; T.idx=-1;
+    T.cname = "Custom ("+v+" min)";
+    T.left  = T.total = v*60;
+    g("exam-prog").className = "";
+    g("custom-in").value = "";
     refreshInfo(); redraw();
 }
 
-function toggleSound() { T.snd=!T.snd; g("btn-snd").innerHTML=T.snd?"&#128266;":"&#128263;"; if(T.snd) beep(1); }
+// ---- TOGGLES -----------------------------------------------
+function toggleSound() {
+    T.snd = !T.snd;
+    g("btn-snd").innerHTML = T.snd ? "&#128266;" : "&#128263;";
+    if (T.snd) beep(1);
+}
 
 function toggleTheme() {
-    T.dark=!T.dark; document.body.className=T.dark?"":"lt";
-    g("btn-thm").innerHTML=T.dark?"&#127769;":"&#9728;";
-    try{ localStorage.setItem("gre-t",T.dark?"d":"l"); }catch(e){}
+    T.dark = !T.dark;
+    document.body.className = T.dark ? "" : "lt";
+    g("btn-thm").innerHTML  = T.dark ? "&#127769;" : "&#9728;";
+    try { localStorage.setItem("gre-t", T.dark?"d":"l"); } catch(e){}
 }
 
 function toggleExpand() {
-    T.open=!T.open;
-    var sx=typeof window.screenLeft!=="undefined"?window.screenLeft:0;
-    var sy=typeof window.screenTop!=="undefined"?window.screenTop:0;
-    if (T.open) { g("coll-bar").style.display="none"; g("exp-view").style.display="block"; window.resizeTo(WIN_EX[0],WIN_EX[1]); }
-    else         { g("exp-view").style.display="none"; g("coll-bar").style.display="block"; window.resizeTo(WIN_CO[0],WIN_CO[1]); }
-    window.moveTo(sx,sy);
+    T.open = !T.open;
+    var sx = typeof window.screenLeft!=="undefined" ? window.screenLeft : 0;
+    var sy = typeof window.screenTop !=="undefined" ? window.screenTop  : 0;
+    if (T.open) {
+        g("coll-bar").style.display = "none";
+        g("exp-view").style.display = "block";
+        window.resizeTo(WIN_EX[0], WIN_EX[1]);
+    } else {
+        g("exp-view").style.display = "none";
+        g("coll-bar").style.display = "block";
+        window.resizeTo(WIN_CO[0], WIN_CO[1]);
+    }
+    window.moveTo(sx, sy);
 }
 
-var _tt=null;
-function toast(msg,col) { var n=g("toast"); n.innerHTML=msg; n.style.background=col||"#f87171"; n.style.display="block"; clearTimeout(_tt); _tt=setTimeout(function(){ n.style.display="none"; },3500); }
-function flash(el) { if(!el) return; el.className="fls"; setTimeout(function(){ el.className=""; },2600); }
+// ---- RESIZE GRIP -------------------------------------------
+// Works together with BORDER="thick" (native edge resize).
+// The corner grip provides a visible drag handle.
+function initResizeGrip() {
+    var grip = g("resize-grip");
+    if (!grip) return;
 
-document.onkeydown=function(ev) {
-    var e=ev||window.event, tg=(e.target||e.srcElement||{}).tagName;
-    if(tg==="INPUT") return;
-    var k=e.keyCode;
-    if(k===32){ T.run?pauseTimer():startTimer(); if(e.preventDefault) e.preventDefault(); }
-    else if(k===82&&e.ctrlKey) resetTimer();
-    else if(k===83) toggleSound();
-    else if(k===84) toggleTheme();
-    else if(k===70) startExam();
-    else if(k>=49&&k<=53) selSec(k-49);
+    grip.onmousedown = function() {
+        var e0     = window.event;
+        var startX = e0.screenX, startY = e0.screenY;
+        var startW = window.outerWidth  || WIN_EX[0];
+        var startH = window.outerHeight || WIN_EX[1];
+
+        document.onmousemove = function() {
+            var em = window.event;
+            var nw = Math.max(MIN_W, startW + (em.screenX - startX));
+            var nh = Math.max(MIN_H, startH + (em.screenY - startY));
+            window.resizeTo(nw, nh);
+        };
+        document.onmouseup = function() {
+            document.onmousemove = null;
+            document.onmouseup   = null;
+        };
+    };
+}
+
+// ---- NOTIFICATIONS -----------------------------------------
+var _tt = null;
+function toast(msg, col) {
+    var n = g("toast");
+    n.innerHTML        = msg;
+    n.style.background = col || "#f87171";
+    n.style.display    = "block";
+    clearTimeout(_tt);
+    _tt = setTimeout(function(){ n.style.display="none"; }, 3500);
+}
+
+function flash(el) {
+    if (!el) return;
+    el.className = "fls";
+    setTimeout(function(){ el.className=""; }, 2600);
+}
+
+// ---- KEYBOARD SHORTCUTS ------------------------------------
+document.onkeydown = function(ev) {
+    var e  = ev || window.event;
+    var tg = (e.target || e.srcElement || {}).tagName;
+    if (tg === "INPUT") return;
+
+    var k = e.keyCode;
+    if      (k===27)              { hideModal(); }
+    else if (k===32)              { T.run ? pauseTimer() : startTimer();
+                                    if(e.preventDefault) e.preventDefault(); }
+    else if (k===82 && e.ctrlKey) { confirmReset(); }
+    else if (k===69 && e.altKey)  { toggleExpand(); }
+    else if (k===83)              { toggleSound(); }
+    else if (k===84)              { toggleTheme(); }
+    else if (k===70)              { startExam(); }
+    else if (k>=49 && k<=53)      { selSec(k-49); }
 };
 
-window.onload=function(){
-    BEEP=buildBeep();
-    try{ if(localStorage.getItem("gre-t")==="l"){ T.dark=false; document.body.className="lt"; g("btn-thm").innerHTML="&#9728;"; } }catch(e){}
-    window.resizeTo(WIN_EX[0],WIN_EX[1]);
-    redraw(); refreshInfo();
+// ---- INIT --------------------------------------------------
+window.onload = function() {
+    BEEP = buildBeep();
+    try {
+        if (localStorage.getItem("gre-t")==="l") {
+            T.dark=false; document.body.className="lt";
+            g("btn-thm").innerHTML="&#9728;";
+        }
+    } catch(e) {}
+
+    window.resizeTo(WIN_EX[0], WIN_EX[1]);
+    initResizeGrip();
+    redraw();
+    refreshInfo();
 };
 </script>
 </body>
