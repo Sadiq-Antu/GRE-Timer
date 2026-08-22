@@ -22,7 +22,7 @@
    RESET & BASE
    ============================================================ */
 * { margin:0; padding:0; box-sizing:border-box; }
-html, body { width:100%; height:100%; overflow:hidden; }
+html, body { width:100%; height:100%; overflow:hidden; position:relative; }
 body { font-family:"Segoe UI",Tahoma,Arial,sans-serif; font-size:13px; }
 
 /* ============================================================
@@ -665,12 +665,49 @@ function toggleExpand() {
         g("coll-bar").style.display = "none";
         g("exp-view").style.display = "block";
         window.resizeTo(WIN_EX[0], WIN_EX[1]);
+        setTimeout(rescale, 80);   // let the window resize settle first
     } else {
         g("exp-view").style.display = "none";
         g("coll-bar").style.display = "block";
         window.resizeTo(WIN_CO[0], WIN_CO[1]);
     }
     window.moveTo(sx, sy);
+}
+
+// ---- SCALE-TO-FIT ------------------------------------------
+// Base content dimensions at the default WIN_EX window size.
+// The body client area = window size minus chrome (title bar ~30px
+// + thick borders ~8px each side).  Measured: approx 420 x 558.
+var _BSW = 420;   // base body clientWidth
+var _BSH = 558;   // base body clientHeight
+
+function rescale() {
+    var ev = g("exp-view");
+    if (!ev || !T.open) return;
+
+    var bw = document.body.clientWidth  || _BSW;
+    var bh = document.body.clientHeight || _BSH;
+
+    // Compute uniform scale that fits content in available space
+    var s = Math.min(bw / _BSW, bh / _BSH);
+    s = parseFloat(Math.max(0.5, Math.min(4.0, s)).toFixed(4));
+
+    // Position content as an absolute block so the transform
+    // origin (top-left of the scaled box) can be offset freely.
+    ev.style.position = "absolute";
+    ev.style.width    = _BSW + "px";
+
+    // Center the scaled box inside the body
+    var left = Math.max(0, Math.round((bw - _BSW * s) / 2));
+    var top  = Math.max(0, Math.round((bh - _BSH * s) / 2));
+    ev.style.left = left + "px";
+    ev.style.top  = top  + "px";
+
+    // Apply scale — IE9 needs the -ms- vendor prefix
+    ev.style.msTransform       = "scale(" + s + ")";
+    ev.style.msTransformOrigin = "top left";
+    ev.style.transform         = "scale(" + s + ")";
+    ev.style.transformOrigin   = "top left";
 }
 
 // ---- RESIZE GRIP -------------------------------------------
@@ -748,6 +785,13 @@ window.onload = function() {
     initResizeGrip();
     redraw();
     refreshInfo();
+
+    // Wire resize — fires whenever user drags a window edge/corner
+    window.onresize = function() { rescale(); };
+
+    // Slight delay so the OS has finished sizing the window
+    // before we read clientWidth/Height for the first rescale.
+    setTimeout(rescale, 120);
 };
 </script>
 </body>
