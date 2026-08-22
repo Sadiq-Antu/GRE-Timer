@@ -125,8 +125,8 @@ body.lt #resize-grip { border-color:#c9d4e4; }
     cursor:pointer; width:auto;
 }
 
-/* Row 2: quick controls (30 px) */
-#coll-r2 { height:30px; line-height:30px; padding:0 12px; white-space:nowrap; }
+/* Row 2: quick controls (38 px + 5 px bottom pad = 43 px) */
+#coll-r2 { height:38px; line-height:38px; padding:0 12px 5px; white-space:nowrap; }
 .cq-btn {
     display:inline-block; height:24px; line-height:22px; padding:0 11px;
     border-radius:6px; cursor:pointer; font-size:11px; font-weight:700;
@@ -426,8 +426,8 @@ var SECS = [
 
 // Adjust these if the window is too big/small on your screen
 var WIN_EX = [450, 604];
-var WIN_CO = [450, 108];   // 2-row collapsed bar (70 px) + chrome
-var MIN_W  = 340, MIN_H = 108;
+var WIN_CO = [450, 140];   // 2-row collapsed bar (83 px content) + ~50 px chrome + safety margin
+var MIN_W  = 340, MIN_H = 140;
 
 var T = {
     idx:-1, left:0, total:0, run:false, iv:null,
