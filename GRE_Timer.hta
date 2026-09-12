@@ -97,7 +97,7 @@ body.lt #resize-grip { border-color:#c9d4e4; }
 #m-no:hover  { background:rgba(59,130,246,.28); }
 
 /* ============================================================
-   COLLAPSED BAR  (2 rows = 70 px)
+   COLLAPSED BAR  (2 rows)
    ============================================================ */
 #coll-bar { display:none; }
 
@@ -125,7 +125,7 @@ body.lt #resize-grip { border-color:#c9d4e4; }
     cursor:pointer; width:auto;
 }
 
-/* Row 2: quick controls (38 px + 5 px bottom pad = 43 px) */
+/* Row 2: quick controls (38 px + 5 px bottom pad) */
 #coll-r2 { height:38px; line-height:38px; padding:0 12px 5px; white-space:nowrap; }
 .cq-btn {
     display:inline-block; height:24px; line-height:22px; padding:0 11px;
@@ -174,6 +174,9 @@ body.lt #coll-hint { color:#c9d4e4; }
 .sk-ok  { stroke:#4ade80; }
 .sk-wrn { stroke:#facc15; }
 .sk-err { stroke:#f87171; }
+/* Cyan for stopwatch */
+.tc-sw  { color:#22d3ee; }
+.sk-sw  { stroke:#22d3ee; }
 
 #stats-row { font-size:11px; margin-bottom:7px; text-align:center; }
 #stats-row span   { display:inline-block; margin:0 10px; }
@@ -198,6 +201,12 @@ body.lt .sbtn .ss { color:#94a3b8; }
 #btn-exam .ss  { display:block; font-size:9px; font-weight:400; margin-top:1px; color:#7c3aed; }
 #btn-exam:hover { background:rgba(139,92,246,.22); }
 #btn-exam.on   { background:rgba(139,92,246,.28); border-color:#a78bfa; }
+
+/* Stopwatch button */
+#sw-btn      { display:block; width:100%; margin-top:3px; padding:6px 8px; border-radius:8px; cursor:pointer; font-size:11px; font-weight:700; text-align:center; font-family:"Segoe UI",Tahoma,Arial,sans-serif; border:1px solid #0891b2; background:rgba(6,182,212,.10); color:#22d3ee; }
+#sw-btn .ss  { display:block; font-size:9px; font-weight:400; margin-top:1px; color:#0891b2; }
+#sw-btn:hover { background:rgba(6,182,212,.22); }
+#sw-btn.on   { background:rgba(6,182,212,.28); border-color:#22d3ee; }
 
 /* Exam progress */
 #exam-prog     { display:none; margin-bottom:4px; }
@@ -234,7 +243,7 @@ body.lt #btn-coll { border:1px solid #c9d4e4; color:#94a3b8; }
 #btn-coll:hover { background:#252545 !important; color:#e2e8f0 !important; }
 body.lt #btn-coll:hover { background:#e2eaf5 !important; color:#1e293b !important; }
 
-/* Resize grip - L-shaped corner indicator */
+/* Resize grip */
 #resize-grip {
     position:fixed; bottom:0; right:0;
     width:14px; height:14px;
@@ -344,7 +353,7 @@ body.lt #btn-coll:hover { background:#e2eaf5 !important; color:#1e293b !importan
     </div>
 
     <!-- Sections -->
-    <div class="dv"><div class="dv-line ruler"></div><div class="div-lbl rl-txt">GRE Sections</div></div>
+    <div class="dv"><div class="dv-line ruler"></div><div class="div-lbl rl-txt">GRE Sections &amp; Modes</div></div>
     <table id="sec-tbl" cellspacing="0" cellpadding="0">
         <tr>
             <td><button class="ghost sbtn" id="s0" onclick="selSec(0)">&#9999; Writing<span class="ss">30 min &middot; 1 task</span></button></td>
@@ -360,6 +369,10 @@ body.lt #btn-coll:hover { background:#e2eaf5 !important; color:#1e293b !importan
     <button id="btn-exam" onclick="startExam()">
         &#127919; Full Exam Mode &mdash; All 5 Sections Auto-Advance
         <span class="ss">Writing &#8594; Verbal 1&amp;2 &#8594; Quant 1&amp;2 &nbsp;|&nbsp; Total: 1 h 58 min</span>
+    </button>
+    <button id="sw-btn" onclick="startStopwatch()">
+        &#9201; Stopwatch &mdash; Count Up
+        <span class="ss">Starts from 0:00 &middot; no time limit &middot; key: W</span>
     </button>
 
     <!-- Exam progress -->
@@ -396,7 +409,7 @@ body.lt #btn-coll:hover { background:#e2eaf5 !important; color:#1e293b !importan
     <!-- Bottom -->
     <div id="bot-row">
         <button id="btn-coll" onclick="toggleExpand()">&#9660; Collapse</button>
-        <span id="hint-bar">Space:Start/Pause &middot; 1&#8211;5:Sections &middot; F:Full Exam &middot; Ctrl+R:Reset &middot; S:Sound &middot; T:Theme</span>
+        <span id="hint-bar">Space:Start/Pause &middot; 1&#8211;5:Sections &middot; F:Exam &middot; W:Stopwatch &middot; Ctrl+R:Reset &middot; S:Sound &middot; T:Theme</span>
     </div>
 
 </div>
@@ -407,11 +420,12 @@ body.lt #btn-coll:hover { background:#e2eaf5 !important; color:#1e293b !importan
 <script>
 "use strict";
 // ============================================================
-//  GRE PRACTICE TIMER  v2  (Standalone HTA / mshta.exe)
-//  New in v2:
-//    1. Start / Pause / Reset available in collapsed bar
-//    2. Resizable: BORDER=thick native handles + JS drag grip
-//    3. Reset shows confirmation modal (no accidental resets)
+//  GRE PRACTICE TIMER  v3
+//  New in v3:
+//    1. Alarm fix  — SAPI Text-to-Speech is reliable on all Windows
+//    2. Stopwatch  — count up from 0, no time limit (W key)
+//    3. Overtime   — when timer expires, keep counting +MM:SS
+//                    so you see exactly how much extra time you used
 // ============================================================
 
 var CIRC = 414.69;   // 2 * PI * 66
@@ -424,15 +438,19 @@ var SECS = [
     { name:"Quant Reasoning  S2",   shrt:"Quant 2",  dur:1560, q:15 }
 ];
 
-// Adjust these if the window is too big/small on your screen
-var WIN_EX = [450, 604];
-var WIN_CO = [450, 140];   // 2-row collapsed bar (83 px content) + ~50 px chrome + safety margin
+// Window size constants
+var WIN_EX = [450, 640];   // expanded (taller to fit stopwatch button)
+var WIN_CO = [450, 140];   // collapsed 2-row bar
 var MIN_W  = 340, MIN_H = 140;
 
+// Timer state
 var T = {
     idx:-1, left:0, total:0, run:false, iv:null,
     snd:true, dark:true, open:true,
-    exam:false, exIdx:0, cname:null
+    exam:false, exIdx:0, cname:null,
+    sw:false,       // true = stopwatch mode (count up)
+    over:false,     // true = overtime mode (timer expired, still counting)
+    elapsed:0       // seconds elapsed (stopwatch) or overtime (overtime mode)
 };
 
 var BEEP = null;
@@ -462,28 +480,22 @@ function buildBeep() {
     } catch(e) { return null; }
 }
 
-// Longer WAV for the time-up alarm: alternating 880/1100 Hz pulses, ~2.5s
+// Longer alarm WAV: alternating 880/1100 Hz pulses
 var ALARM = null;
-
 function buildAlarmWAV() {
     try {
         var sr = 8000, b = [], t, s, env, v, i, str;
-        var tones  = [880, 1100];
-        var onLen  = Math.floor(sr * 0.14);   // 0.14s on
-        var offLen = Math.floor(sr * 0.07);   // 0.07s off
-        var reps   = 9;                        // 9 pulses ≈ 2 s total
-
-        for (t = 0; t < reps; t++) {
+        var tones=[880,1100], onLen=Math.floor(sr*0.14), offLen=Math.floor(sr*0.07), reps=9;
+        for (t=0;t<reps;t++) {
             var hz = tones[t % 2];
-            for (s = 0; s < onLen; s++) {
-                env = Math.min(s, onLen - s, 50) / 50;
-                v   = 128 + Math.round(115 * env * Math.sin(2 * Math.PI * hz * s / sr));
+            for (s=0;s<onLen;s++) {
+                env = Math.min(s, onLen-s, 50) / 50;
+                v   = 128 + Math.round(115*env*Math.sin(2*Math.PI*hz*s/sr));
                 b.push(v & 0xFF);
             }
-            for (s = 0; s < offLen; s++) b.push(128);
+            for (s=0;s<offLen;s++) b.push(128);
         }
-
-        var ns = b.length, fz = 36 + ns, h = [];
+        var ns=b.length, fz=36+ns, h=[];
         h.push(82,73,70,70);
         h.push(fz&255,(fz>>8)&255,(fz>>16)&255,(fz>>24)&255);
         h.push(87,65,86,69, 102,109,116,32, 16,0,0,0, 1,0, 1,0);
@@ -491,17 +503,16 @@ function buildAlarmWAV() {
         h.push(sr&255,(sr>>8)&255,(sr>>16)&255,(sr>>24)&255);
         h.push(1,0, 8,0, 100,97,116,97);
         h.push(ns&255,(ns>>8)&255,(ns>>16)&255,(ns>>24)&255);
-        var all = h.concat(b);
-        str = "";
-        for (i = 0; i < all.length; i++) str += String.fromCharCode(all[i]);
+        var all=h.concat(b); str="";
+        for (i=0;i<all.length;i++) str += String.fromCharCode(all[i]);
         return "data:audio/wav;base64," + btoa(str);
     } catch(e) { return null; }
 }
 
-// Find a real .wav file on this Windows installation for reliable playback
+// Find a real Windows WAV file for PowerShell playback
 var WIN_WAV = null;
 function findWinWAV() {
-    var candidates = [
+    var cands = [
         "C:\\Windows\\Media\\Alarm01.wav",
         "C:\\Windows\\Media\\Alarm02.wav",
         "C:\\Windows\\Media\\Windows Alarm.wav",
@@ -512,29 +523,27 @@ function findWinWAV() {
     ];
     try {
         var fso = new ActiveXObject("Scripting.FileSystemObject");
-        for (var i = 0; i < candidates.length; i++) {
-            if (fso.FileExists(candidates[i])) return candidates[i];
+        for (var i=0; i<cands.length; i++) {
+            if (fso.FileExists(cands[i])) return cands[i];
         }
     } catch(e) {}
     return null;
 }
 
-// Play audio element (data-URI WAV)
 function playDataAudio(uri, n, gap) {
-    n = n || 1; gap = gap || 420;
-    for (var i = 0; i < n; i++) {
+    n=n||1; gap=gap||420;
+    for (var i=0;i<n;i++) {
         (function(d){ setTimeout(function(){
-            try { var a = document.createElement("audio"); a.src = uri; a.play(); } catch(e){}
-        }, d); })(i * gap);
+            try { var a=document.createElement("audio"); a.src=uri; a.play(); } catch(e){}
+        }, d); })(i*gap);
     }
 }
 
-// Play via PowerShell System.Media.SoundPlayer (real WAV file, always audible)
 function playWinWAV(path, reps) {
-    reps = reps || 1;
+    reps=reps||1;
     try {
-        var shell = new ActiveXObject("WScript.Shell");
-        var cmd = 'powershell -NoProfile -WindowStyle Hidden -Command "' +
+        var shell=new ActiveXObject("WScript.Shell");
+        var cmd='powershell -NoProfile -WindowStyle Hidden -Command "' +
             '$sp=New-Object System.Media.SoundPlayer;\'' + path + '\'|' +
             'ForEach-Object{$sp.SoundLocation=$_;$sp.Load()};' +
             'for($i=0;$i-lt' + reps + ';$i++){$sp.PlaySync()}"';
@@ -542,59 +551,52 @@ function playWinWAV(path, reps) {
     } catch(e) {}
 }
 
-// Short warning beep (up to n times)
+// Short warning beep
 function beep(n) {
     if (!T.snd) return;
-    n = n || 1;
-    if (BEEP) {
-        playDataAudio(BEEP, n, 440);
-        return;
-    }
-    // Fallback: PC-speaker via PowerShell (always works on Windows)
+    n=n||1;
+    if (BEEP) { playDataAudio(BEEP, n, 440); return; }
     try {
-        var shell = new ActiveXObject("WScript.Shell");
-        var seq = "";
-        for (var j = 0; j < n; j++) seq += "[console]::beep(660,180);";
-        shell.Run('powershell -NoProfile -WindowStyle Hidden -Command "' + seq + '"', 0, false);
+        var shell=new ActiveXObject("WScript.Shell");
+        var seq="";
+        for (var j=0;j<n;j++) seq+="[console]::beep(660,180);";
+        shell.Run('powershell -NoProfile -WindowStyle Hidden -Command "'+seq+'"', 0, false);
     } catch(e) {}
 }
 
-// Full alarm when time expires (louder, longer, multi-method)
+// Full alarm on expiry — three parallel methods for maximum reliability
 function triggerAlarm() {
     if (!T.snd) return;
 
-    // Method 1: real Windows WAV via SoundPlayer (most audible)
-    if (WIN_WAV) {
-        playWinWAV(WIN_WAV, 3);
-    }
+    // Method 1: SAPI Text-to-Speech (always works on any Windows installation)
+    try {
+        var sapi = new ActiveXObject("SAPI.SpVoice");
+        sapi.Rate   = 0;
+        sapi.Volume = 100;
+        sapi.Speak("Time is up! Time is up!", 1);   // 1 = async (non-blocking)
+    } catch(e) {}
 
-    // Method 2: synthesised alarm WAV via audio element (parallel)
+    // Method 2: PowerShell + real Windows WAV file
+    if (WIN_WAV) { playWinWAV(WIN_WAV, 3); }
+
+    // Method 3: Synthesised alarm via audio element
     if (ALARM) {
         playDataAudio(ALARM, 3, 900);
     } else if (BEEP) {
         playDataAudio(BEEP, 8, 380);
     }
-
-    // Method 3: PC-speaker console beep as absolute fallback
-    if (!WIN_WAV && !ALARM && !BEEP) {
-        try {
-            var shell = new ActiveXObject("WScript.Shell");
-            shell.Run(
-                'powershell -NoProfile -WindowStyle Hidden -Command ' +
-                '"1..6|%{[console]::beep(880,160);Start-Sleep -Milliseconds 120;' +
-                '[console]::beep(1100,160);Start-Sleep -Milliseconds 120}"',
-                0, false
-            );
-        } catch(e) {}
-    }
 }
-
 
 // ---- HELPERS -----------------------------------------------
 function g(id) { return document.getElementById(id); }
 
 function fmtTime(s) {
-    var m = Math.floor(s/60), r = s%60;
+    if (s < 0) s = 0;
+    if (s >= 3600) {
+        var h=Math.floor(s/3600), m=Math.floor((s%3600)/60), r=s%60;
+        return h+":"+(m<10?"0":"")+m+":"+(r<10?"0":"")+r;
+    }
+    var m=Math.floor(s/60), r=s%60;
     return (m<10?"0":"")+m+":"+(r<10?"0":"")+r;
 }
 
@@ -612,28 +614,62 @@ function cstate() {
 
 // ---- DISPLAY -----------------------------------------------
 function redraw() {
-    var cs  = cstate(), tc = "tc-"+cs, sc = "sk-"+cs, ts = fmtTime(T.left);
-    var pct = T.total>0 ? T.left/T.total : 0;
-    var off = (CIRC * (1-pct)).toFixed(2);
+    var ts, pct, off, tc, sc, cs, lbl, shouldPulse;
+
+    if (T.sw) {
+        // ---- STOPWATCH ----
+        ts  = fmtTime(T.elapsed);
+        pct = Math.min(T.elapsed / 1800, 1.0);   // fills over 30 min
+        tc  = "tc-sw"; sc = "sk-sw";
+        lbl = "elapsed";
+        shouldPulse = false;
+    } else if (T.over) {
+        // ---- OVERTIME ----
+        ts  = "+" + fmtTime(T.elapsed);
+        pct = 0;                                  // ring fully emptied
+        tc  = "tc-err"; sc = "sk-err";
+        lbl = "overtime";
+        shouldPulse = T.run;
+    } else {
+        // ---- COUNTDOWN ----
+        cs  = cstate();
+        tc  = "tc-"+cs; sc = "sk-"+cs;
+        ts  = fmtTime(T.left);
+        pct = T.total>0 ? T.left/T.total : 0;
+        lbl = "remaining";
+        shouldPulse = (cs==="err" && T.run);
+    }
+
+    off = (CIRC*(1-pct)).toFixed(2);
 
     g("time-big").className = tc;  g("time-big").innerHTML = ts;
     g("coll-time").className = tc; g("coll-time").innerHTML = ts;
+    g("time-lbl").innerHTML  = lbl;
 
     var rp = g("ring-prog");
     rp.style.strokeDashoffset = off;
     rp.className = sc;
-    g("ring-outer").className = (cs==="err" && T.run) ? "pulse" : "";
+    g("ring-outer").className = shouldPulse ? "pulse" : "";
 
     var onCls = T.run ? " on" : "";
-    g("btn-go").className = "cbtn" + onCls;
-    g("cq-go").className  = "cq-btn" + onCls;
+    g("btn-go").className = "cbtn"+onCls;
+    g("cq-go").className  = "cq-btn"+onCls;
 
-    var st = T.run ? "&#9654;&nbsp;Running"
+    var st;
+    if (T.sw) {
+        st = T.run ? "&#9201;&nbsp;Counting"
+           : (T.elapsed>0 ? "&#9646;&#9646;&nbsp;Paused" : "&#9201;&nbsp;Ready");
+    } else if (T.over) {
+        st = "&#9200;&nbsp;Overtime";
+    } else {
+        st = T.run ? "&#9654;&nbsp;Running"
            : (T.left===0 && T.total>0 ? "&#10003;&nbsp;Done" : "&#9646;&#9646;&nbsp;Paused");
+    }
     g("coll-st").innerHTML = st;
 }
 
 function refreshInfo() {
+    if (T.sw) return;   // stopwatch sets its own labels in startStopwatch()
     var sec  = T.idx>=0 ? SECS[T.idx] : null;
     var name = T.cname || (sec ? sec.name : "Select a Section Below");
     var bdg  = T.cname ? "Custom" : (sec ? sec.shrt : "&#8212;");
@@ -653,6 +689,10 @@ function clearBtns() {
     var i;
     for (i=0;i<5;i++) { var b=g("s"+i); if(b) b.className="ghost sbtn"; }
     var fe=g("s-fe"); if(fe) fe.className="ghost sbtn";
+    var sw=g("sw-btn"); if(sw) sw.className="";
+    sw.style.background  = "rgba(6,182,212,.10)";
+    sw.style.borderColor = "#0891b2";
+    sw.style.color       = "#22d3ee";
     var be=g("btn-exam");
     be.className="";
     be.style.background  = "rgba(139,92,246,.10)";
@@ -662,6 +702,7 @@ function clearBtns() {
 
 function selSec(idx) {
     stopTimer(); clearBtns();
+    T.sw=false; T.over=false; T.elapsed=0;
     T.exam=false; T.idx=idx; T.cname=null;
     T.left=T.total=SECS[idx].dur;
     g("s"+idx).className = "ghost sbtn on";
@@ -671,6 +712,7 @@ function selSec(idx) {
 
 function startExam() {
     stopTimer(); clearBtns();
+    T.sw=false; T.over=false; T.elapsed=0;
     T.exam=true; T.exIdx=0; T.cname=null;
     var be=g("btn-exam");
     be.className="on";
@@ -687,7 +729,7 @@ function loadExSec(idx) {
 }
 
 function updProg() {
-    var i, d, pct = (T.exIdx/SECS.length)*100;
+    var i, d, pct=(T.exIdx/SECS.length)*100;
     g("prog-fill").style.width = pct+"%";
     for (i=0;i<SECS.length;i++) {
         d=g("d"+i);
@@ -695,9 +737,29 @@ function updProg() {
     }
 }
 
+// ---- STOPWATCH ---------------------------------------------
+function startStopwatch() {
+    stopTimer(); clearBtns();
+    T.sw=true; T.over=false; T.elapsed=0;
+    T.left=T.total=0; T.idx=-1; T.cname=null; T.exam=false;
+    var sw=g("sw-btn");
+    sw.className="on";
+    sw.style.background  = "rgba(6,182,212,.28)";
+    sw.style.borderColor = "#22d3ee";
+    sw.style.color       = "#22d3ee";
+    g("exam-prog").className = "";
+    g("sec-lbl").innerHTML    = "&#9201; Stopwatch";
+    g("coll-badge").innerHTML = "&#9201;";
+    g("st-pq").innerHTML      = "&#8212;";
+    g("st-q").innerHTML       = "&#8212;";
+    redraw();
+}
+
 // ---- TIMER CONTROL -----------------------------------------
 function startTimer() {
-    if (T.run || T.left===0) return;
+    if (T.run) return;
+    // Allow start: stopwatch (any time), overtime (keep going), countdown with time left
+    if (!T.sw && !T.over && T.left===0) return;
     T.run = true;
     T.iv  = setInterval(tick, 1000);
     redraw();
@@ -705,46 +767,77 @@ function startTimer() {
 
 function pauseTimer() {
     if (!T.run) return;
-    T.run = false; clearInterval(T.iv); T.iv = null; redraw();
+    T.run=false; clearInterval(T.iv); T.iv=null; redraw();
 }
 
 function stopTimer() {
-    T.run = false; clearInterval(T.iv); T.iv = null;
+    T.run=false; clearInterval(T.iv); T.iv=null;
 }
 
-// confirmReset: show modal instead of resetting immediately
 function confirmReset() {
-    if (T.left===0 && T.total===0) return;
+    var hasState = (T.sw && T.elapsed>0) || (!T.sw && (T.left!==T.total || T.over));
+    if (!hasState && T.total===0 && !T.sw) return;
+    if (T.sw && T.elapsed===0) return;
     g("modal-bg").style.display = "block";
 }
 function hideModal() { g("modal-bg").style.display = "none"; }
-function doReset()   { hideModal(); stopTimer(); T.left = T.total; redraw(); }
-
-function tick() {
-    if (T.left > 0) {
-        T.left--;
-        if (T.left===300) beep(1);
-        if (T.left===60)  beep(1);
-        if (T.left===30)  beep(2);
-        redraw();
-    } else { onExpiry(); }
+function doReset() {
+    hideModal(); stopTimer();
+    if (T.sw) {
+        T.elapsed = 0;
+    } else {
+        T.over=false; T.elapsed=0;
+        T.left=T.total;
+    }
+    redraw();
 }
 
-function onExpiry() {
-    stopTimer();
-    triggerAlarm();   // loud ringing alarm (multi-layer: WAV file → synth audio → PC beep)
-    toast("&#9200;&nbsp;Time's Up!", "#f87171");
-    flash(g("exp-view"));
-    if (T.exam) {
-        T.exIdx++;
-        if (T.exIdx < SECS.length) {
-            setTimeout(function(){ loadExSec(T.exIdx); startTimer(); }, 2200);
+function tick() {
+    // ---- Stopwatch ----
+    if (T.sw) {
+        T.elapsed++;
+        redraw();
+        return;
+    }
+    // ---- Overtime (timer hit 0 but keeps counting) ----
+    if (T.over) {
+        T.elapsed++;
+        if (T.elapsed % 60 === 0) beep(1);   // reminder every overtime minute
+        redraw();
+        return;
+    }
+    // ---- Normal countdown ----
+    if (T.left > 0) {
+        T.left--;
+        if (T.left===300) beep(1);   // 5 min warning
+        if (T.left===60)  beep(1);   // 1 min warning
+        if (T.left===30)  beep(2);   // 30 sec warning
+        redraw();
+    } else {
+        // Timer just hit zero
+        triggerAlarm();
+        toast("&#9200;&nbsp;Time's Up!", "#f87171");
+        flash(g("exp-view"));
+
+        if (T.exam) {
+            // Exam mode: auto-advance to next section, no overtime
+            stopTimer();
+            T.exIdx++;
+            if (T.exIdx < SECS.length) {
+                setTimeout(function(){ loadExSec(T.exIdx); startTimer(); }, 2200);
+            } else {
+                g("sec-lbl").innerHTML    = "&#127881;&nbsp;Full Exam Complete!";
+                g("coll-badge").innerHTML = "Done!";
+                g("prog-fill").style.width = "100%";
+                var i; for(i=0;i<SECS.length;i++) g("d"+i).className="pdot done";
+                toast("&#127881;&nbsp;Exam Complete! Great job!", "#4ade80");
+            }
         } else {
-            g("sec-lbl").innerHTML    = "&#127881;&nbsp;Full Exam Complete!";
-            g("coll-badge").innerHTML = "Done!";
-            g("prog-fill").style.width = "100%";
-            var i; for (i=0;i<SECS.length;i++) g("d"+i).className="pdot done";
-            toast("&#127881;&nbsp;Exam Complete! Great job!", "#4ade80");
+            // Regular / custom: enter overtime — keep counting, show +MM:SS
+            T.over    = true;
+            T.elapsed = 0;
+            redraw();
+            // (interval keeps running — next tick goes into the T.over branch)
         }
     }
 }
@@ -754,6 +847,7 @@ function setCustom() {
     var v = parseInt(g("custom-in").value, 10);
     if (!v||v<1||v>999) { toast("&#9888;&nbsp;Enter 1&#8211;999 minutes","#facc15"); return; }
     stopTimer(); clearBtns();
+    T.sw=false; T.over=false; T.elapsed=0;
     T.exam=false; T.idx=-1;
     T.cname = "Custom ("+v+" min)";
     T.left  = T.total = v*60;
@@ -784,7 +878,7 @@ function toggleExpand() {
         g("coll-bar").style.display = "none";
         g("exp-view").style.display = "block";
         window.resizeTo(WIN_EX[0], WIN_EX[1]);
-        setTimeout(rescale, 80);   // let the window resize settle first
+        setTimeout(rescale, 80);
     } else {
         g("exp-view").style.display = "none";
         g("coll-bar").style.display = "block";
@@ -794,59 +888,43 @@ function toggleExpand() {
 }
 
 // ---- SCALE-TO-FIT ------------------------------------------
-// Base content dimensions at the default WIN_EX window size.
-// The body client area = window minus chrome (~30px title + ~8px borders each side).
-// Measured at default size: approx 420 x 558.
-var _BSW = 420;   // base body clientWidth
-var _BSH = 558;   // base body clientHeight
+var _BSW = 420;    // base content width
+var _BSH = 592;    // base content height (updated for stopwatch button)
 
 function rescale() {
     var ev = g("exp-view");
     if (!ev || !T.open) return;
-
     var bw = document.body.clientWidth  || _BSW;
     var bh = document.body.clientHeight || _BSH;
-
-    // Non-uniform scale: each axis stretched independently
-    // so content always fills the full window with NO blank spaces.
-    var sx = parseFloat(Math.max(0.3, Math.min(5.0, bw / _BSW)).toFixed(4));
-    var sy = parseFloat(Math.max(0.3, Math.min(5.0, bh / _BSH)).toFixed(4));
-
-    // Content box sits at top-left; transform expands outward
+    var sx = parseFloat(Math.max(0.3, Math.min(5.0, bw/_BSW)).toFixed(4));
+    var sy = parseFloat(Math.max(0.3, Math.min(5.0, bh/_BSH)).toFixed(4));
     ev.style.position = "absolute";
-    ev.style.width    = _BSW + "px";
+    ev.style.width    = _BSW+"px";
     ev.style.left     = "0px";
     ev.style.top      = "0px";
-
-    // IE9 requires -ms- prefix for transforms
-    ev.style.msTransform       = "scale(" + sx + "," + sy + ")";
+    ev.style.msTransform       = "scale("+sx+","+sy+")";
     ev.style.msTransformOrigin = "top left";
-    ev.style.transform         = "scale(" + sx + "," + sy + ")";
+    ev.style.transform         = "scale("+sx+","+sy+")";
     ev.style.transformOrigin   = "top left";
 }
 
 // ---- RESIZE GRIP -------------------------------------------
-// Works together with BORDER="thick" (native edge resize).
-// The corner grip provides a visible drag handle.
 function initResizeGrip() {
     var grip = g("resize-grip");
     if (!grip) return;
-
     grip.onmousedown = function() {
-        var e0     = window.event;
-        var startX = e0.screenX, startY = e0.screenY;
-        var startW = window.outerWidth  || WIN_EX[0];
-        var startH = window.outerHeight || WIN_EX[1];
-
+        var e0=window.event;
+        var startX=e0.screenX, startY=e0.screenY;
+        var startW=window.outerWidth||WIN_EX[0];
+        var startH=window.outerHeight||WIN_EX[1];
         document.onmousemove = function() {
-            var em = window.event;
-            var nw = Math.max(MIN_W, startW + (em.screenX - startX));
-            var nh = Math.max(MIN_H, startH + (em.screenY - startY));
+            var em=window.event;
+            var nw=Math.max(MIN_W, startW+(em.screenX-startX));
+            var nh=Math.max(MIN_H, startH+(em.screenY-startY));
             window.resizeTo(nw, nh);
         };
         document.onmouseup = function() {
-            document.onmousemove = null;
-            document.onmouseup   = null;
+            document.onmousemove=null; document.onmouseup=null;
         };
     };
 }
@@ -861,10 +939,9 @@ function toast(msg, col) {
     clearTimeout(_tt);
     _tt = setTimeout(function(){ n.style.display="none"; }, 3500);
 }
-
 function flash(el) {
     if (!el) return;
-    el.className = "fls";
+    el.className="fls";
     setTimeout(function(){ el.className=""; }, 2600);
 }
 
@@ -872,8 +949,7 @@ function flash(el) {
 document.onkeydown = function(ev) {
     var e  = ev || window.event;
     var tg = (e.target || e.srcElement || {}).tagName;
-    if (tg === "INPUT") return;
-
+    if (tg==="INPUT") return;
     var k = e.keyCode;
     if      (k===27)              { hideModal(); }
     else if (k===32)              { T.run ? pauseTimer() : startTimer();
@@ -883,6 +959,7 @@ document.onkeydown = function(ev) {
     else if (k===83)              { toggleSound(); }
     else if (k===84)              { toggleTheme(); }
     else if (k===70)              { startExam(); }
+    else if (k===87)              { startStopwatch(); }   // W = Stopwatch
     else if (k>=49 && k<=53)      { selSec(k-49); }
 };
 
@@ -895,20 +972,16 @@ window.onload = function() {
         }
     } catch(e) {}
 
-    BEEP     = buildBeep();        // short warning beep (synthesised)
-    ALARM    = buildAlarmWAV();    // longer alternating-tone alarm (synthesised)
-    WIN_WAV  = findWinWAV();       // real Windows .wav file for max reliability
+    BEEP    = buildBeep();
+    ALARM   = buildAlarmWAV();
+    WIN_WAV = findWinWAV();
 
     window.resizeTo(WIN_EX[0], WIN_EX[1]);
     initResizeGrip();
     redraw();
     refreshInfo();
 
-    // Wire resize — fires whenever user drags a window edge/corner
     window.onresize = function() { rescale(); };
-
-    // Slight delay so the OS has finished sizing the window
-    // before we read clientWidth/Height for the first rescale.
     setTimeout(rescale, 120);
 };
 </script>
