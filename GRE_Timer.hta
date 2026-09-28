@@ -779,9 +779,15 @@ function confirmReset() {
     var hasState = (T.sw && T.elapsed>0) || (!T.sw && (T.left!==T.total || T.over));
     if (!hasState && T.total===0 && !T.sw) return;
     if (T.sw && T.elapsed===0) return;
+    // If collapsed, grow the window so the full modal is visible
+    if (!T.open) { window.resizeTo(WIN_CO[0], 290); }
     g("modal-bg").style.display = "block";
 }
-function hideModal() { g("modal-bg").style.display = "none"; }
+function hideModal() {
+    g("modal-bg").style.display = "none";
+    // Restore collapsed size if we grew it for the modal
+    if (!T.open) { window.resizeTo(WIN_CO[0], WIN_CO[1]); }
+}
 function doReset() {
     hideModal(); stopTimer();
     if (T.sw) {
